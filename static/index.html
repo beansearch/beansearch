@@ -47,20 +47,18 @@
 
         <div class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4 font-semibold">
 
-        <button onclick="toggleFAQ()" >
-            How Does This Work? <span id="faq-arrow">▼</span>
-        </button>
+            <button onclick="toggleFAQ()">
+                How Does This Work? <span id="faq-arrow">▼</span>
+            </button>
 
-        <p id="faq-content" class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4 hidden font-normal">
-            Episodes from the Three Bean Salad patreon feed have been transcribed using OpenAI's <a class="text-blue-600 hover:underline"
-                href="https://github.com/openai/whisper">Whisper</a> library. The results haven't been verified for accuracy, so don't use them
-                as the basis of a legal case. However, it seems to have done a damn fine job, correctly transcribing words such as "fanjambo!".
+            <p id="faq-content" class="text-gray-700 text-center text-xs w-xs hidden font-normal mx-auto w-1/2">
+                Episodes from the Three Bean Salad patreon feed have been transcribed locally using OpenAI's <a
+                    class="text-blue-600 hover:underline" href="https://github.com/openai/whisper">Whisper</a> library.
+                The results haven't been verified for accuracy, so don't use them
+                as the basis of litigation. However, it seems to have done a damn fine job, successfully transcribing
+                "fanjambo!".
         </div>
-
-
-
     </div>
-
     <script>
 
         function toggleFAQ() {
