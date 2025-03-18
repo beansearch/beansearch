@@ -12,11 +12,11 @@
     <img src="/static/banner.jpg" alt="Banner" class="block w-full h-48 object-cover mb-6">
     <div class="w-full max-w-3xl">
         <h2 class="text-xl font-bold mb-4 text-center">Search The Bean Machine</h2>
-        <p class="text-gray-700 text-center max-w-2xl mx-auto mb-4">
+        <p class="text-gray-700 text-center max-w-2xl mx-auto mb-4 px-4">
             Finding the nuggets of purest chat, deep from within the bowels of The Bean Machine.
         </p>
 
-        <div class="flex space-x-2 mb-4">
+        <div class="flex space-x-2 mb-4 px-4">
             <input type="text" id="searchBox"
                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Enter search term">
@@ -32,8 +32,8 @@
                 <thead class="bg-blue-500 text-white">
                     <tr>
                         <th class="px-4 py-2 text-left">Episode</th>
-                        <th class="px-4 py-2 text-left">Start Time</th>
-                        <th class="px-4 py-2 text-left">End Time</th>
+                        <th class="px-4 py-2 text-left">Time</th>
+                        <!--<th class="px-4 py-2 text-left">End Time</th>-->
                         <th class="px-4 py-2 text-left">Text</th>
                     </tr>
                 </thead>
@@ -42,13 +42,34 @@
         </div>
         <p class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4">
             All content copyright <a class="text-blue-600 hover:underline" href="https://linktr.ee/threebeansalad">Three
-                Bean Salad</a> podcast.
-            <br> Episode transcript was done automatically using <a class="text-blue-600 hover:underline"
-                href="https://github.com/openai/whisper">Whisper</a>, and hasn't been verified for accuracy.
-        </p>
+                Bean Salad</a> podcast.</p>
+
+        <div class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4 font-semibold">
+
+        <button onclick="toggleFAQ()" >
+            How Does This Work? <span id="faq-arrow">▼</span>
+        </button>
+
+        <p id="faq-content" class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4 hidden font-normal">
+            Episodes from the Three Bean Salad patreon feed have been transcribed using OpenAI's <a class="text-blue-600 hover:underline"
+                href="https://github.com/openai/whisper">Whisper</a> library. The results haven't been verified for accuracy, so don't use them
+                as the basis of a legal case. However, it seems to have done a damn fine job, correctly transcribing words such as "fanjambo!".
+        </div>
+
+
+
     </div>
 
     <script>
+
+        function toggleFAQ() {
+            let faqContent = document.getElementById("faq-content");
+            let faqArrow = document.getElementById("faq-arrow");
+
+            faqContent.classList.toggle("hidden"); // Show/hide content
+            faqArrow.textContent = faqContent.classList.contains("hidden") ? "▼" : "▲";
+        }
+
         function formatTime(seconds) {
             if (isNaN(seconds) || seconds < 0) return "00:00:00";
             let hrs = Math.floor(seconds / 3600);
@@ -91,9 +112,9 @@
 
                             return `
                         <tr class="cursor-pointer hover:bg-gray-200 ${rowColor}" onclick="fetchContext('${d.episode}', ${d.start}, '${safeText}', this)">
-                            <td class="px-4 py-2">${d.episode || "Untitled"}</td>
-                            <td class="px-4 py-2">${formatTime(d.start)}</td>
-                            <td class="px-4 py-2">${formatTime(d.end)}</td>
+                            <td class="px-4 py-2 w-1/3">${d.episode.replace("Three Bean Salad -", "").replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3") || "Untitled"}</td>
+                            <td class="px-4 py-2 w-1/7">${formatTime(d.start)}</td>
+                            <!--<td class="px-4 py-2 w-1/7">${formatTime(d.end)}</td>-->
                             <td class="px-4 py-2">${d.text || "No content"}</td>
                         </tr>
                         <tr class="hidden bg-gray-50" id="context-${d.episode}-${d.start}">
@@ -124,8 +145,7 @@
                 .then(response => response.json())
                 .then(data => {
                     let contextText = data.context || "No additional context available.";
-                    let highlightedText = highlightText(contextText, text); // Apply Tailwind-based highlighting
-
+                    let highlightedText = highlightText(contextText, text);
                     contextRow.innerHTML = `<td colspan="4" class="px-4 py-2 text-gray-600 italic">
                 ${highlightedText}
             </td>`;
@@ -155,7 +175,7 @@
         document.getElementById("searchBox").addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
                 event.preventDefault(); // Prevents accidental form submission (if inside a form)
-                search(); // Calls the search function
+                search();
             }
         });
 

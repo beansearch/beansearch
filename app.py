@@ -16,7 +16,7 @@ def serve_frontend():
 def search():
     query = request.args.get("q", "").strip()
     if not query:
-        return jsonify([])  # Return empty list if no query
+        return jsonify([])
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -31,10 +31,10 @@ def context():
     episode = request.args.get("e", "").strip()
     start = request.args.get("s", "").strip()
     print(episode, start)
-    start = float(start)  # Convert to integer
+    start = float(start)
 
-    if not episode or not start:  # Ensure 'start' is a number
-        return jsonify([])  # Return empty list if invalid input
+    if not episode or not start:
+        return jsonify([])
 
 
     conn = sqlite3.connect(DB_PATH)
@@ -45,7 +45,7 @@ def context():
         WHERE episode = ? 
         AND start > (? - 30) 
         AND end < (? + 30);
-    """, (episode, start, start))  # Safe parameterized query
+    """, (episode, start, start))
     results = cursor.fetchone()
 
     conn.close()
