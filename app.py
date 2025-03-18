@@ -9,6 +9,12 @@ CORS(app)
 DB_PATH = "3bs.db"
 
 
+def fts5_escaped_query(input):
+    # Sigh. This horrible mangling is need to make searching an fts5 table with apostrophes possible.
+    #   wouldn't --> "wouldn''t"  (note it needs both the double and single quotes added).
+    return f'"{input.replace("'", "''")}"'
+
+
 @app.route("/")
 def serve_frontend():
     return send_from_directory("static", "index.html")
@@ -17,10 +23,6 @@ def serve_frontend():
 @app.route("/search", methods=["GET"])
 def search():
     query = request.args.get("q", "").strip()
-
-    # Sigh. This horrible mangling is need to make searching an fts5 table with apostrophes possible.
-    #   wouldn't --> "wouldn''t"  (note it needs both the double and single quotes added).
-    fts5_escaped_query = f'"{query.replace("'", "''")}"'
 
     if not query:
         return jsonify([])
@@ -33,7 +35,7 @@ def search():
         transcripts WHERE text MATCH ?
         ORDER BY episode ASC;
         """,
-        (fts5_escaped_query,),
+        (fts5_escaped_query(query),),
     )
     results = [dict(row) for row in cursor.fetchall()]
     conn.close()
