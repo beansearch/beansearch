@@ -49,7 +49,7 @@ def context():
     start = request.args.get("s", "").strip()
     start = float(start)
 
-    if not episode or not start:
+    if not episode:
         return jsonify([])
 
     conn = sqlite3.connect(DB_PATH)
