@@ -28,9 +28,10 @@
         <div id="loading" class="text-center text-gray-500 hidden">Searching...</div>
 
         <div id="resultsContainer" class="overflow-x-auto">
-            <table class="min-w-full bg-white border rounded-lg hidden" id="resultsTable">
+            <table class="min-w-full bg-white border rounded-lg hidden table-fixed" id="resultsTable">
                 <thead class="bg-blue-500 text-white">
                     <tr>
+                        <th class="px-4 py-2 text-left"></th>
                         <th class="px-4 py-2 text-left">Episode</th>
                         <th class="px-4 py-2 text-left">Time</th>
                         <!--<th class="px-4 py-2 text-left">End Time</th>-->
@@ -110,9 +111,21 @@
                             }
                             let rowColor = episodeColors[d.episode]; // Get assigned color
 
+                            // Hacky way to improve the look of the Episode name column, stripping out redundant information
+                            display_title = d.episode
+                                .replace("Three Bean Salad -", "")
+                                .replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3")
+                                .replace("ad-free version", "")
+                                .replace("Ad-free version", "")
+                                .replace(/S\d E\d -/, "")
+                                || "Untitled";
+
                             return `
                         <tr class="cursor-pointer hover:bg-gray-200 ${rowColor}" onclick="fetchContext('${d.episode}', ${d.start}, '${safeText}', this)">
-                            <td class="px-4 py-2 w-1/3">${d.episode.replace("Three Bean Salad -", "").replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3") || "Untitled"}</td>
+                            <td class="px-4 py-2 w-1/10 ">
+                                <img id="icon-${d.episode}-${d.start}" src="/static/chevron-right_8.png" class="w-10 transition-transform duration-300" />
+                                </td>
+                            <td class="px-4 py-2 w-1/3">${display_title}</td>
                             <td class="px-4 py-2 w-1/7">${formatTime(d.start)}</td>
                             <!--<td class="px-4 py-2 w-1/7">${formatTime(d.end)}</td>-->
                             <td class="px-4 py-2">${d.text || "No content"}</td>
@@ -135,9 +148,11 @@
 
         function fetchContext(episode, start, text, row) {
             let contextRow = document.getElementById(`context-${episode}-${start}`);
+            let icon = document.getElementById(`icon-${episode}-${start}`);
 
             if (!contextRow.classList.contains("hidden")) {
                 contextRow.classList.add("hidden");
+                icon.classList.remove("rotate-90");
                 return;
             }
 
@@ -146,10 +161,11 @@
                 .then(data => {
                     let contextText = data.context || "No additional context available.";
                     let highlightedText = highlightText(contextText, text);
-                    contextRow.innerHTML = `<td colspan="4" class="px-4 py-2 text-gray-600 italic">
+                    contextRow.innerHTML = `<td colspan="4" class="w-1 px-4 py-2 text-gray-600 italic">
                 ${highlightedText}
             </td>`;
                     contextRow.classList.remove("hidden");
+                    icon.classList.add("rotate-90");
                 })
                 .catch(error => {
                     console.error("Error fetching context:", error);
