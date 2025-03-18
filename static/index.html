@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search The Bean Machine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+    <img src="/static/banner.jpg" alt="Banner" class="block w-full h-48 object-cover mb-6">
+    <div class="w-full max-w-3xl">
+        <h2 class="text-xl font-bold mb-4 text-center">Search The Bean Machine</h2>
+        <p class="text-gray-700 text-center max-w-2xl mx-auto mb-4">
+            Finding the nuggets of purest chat, deep from within the bowels of The Bean Machine.
+        </p>
+
+        <div class="flex space-x-2 mb-4">
+            <input type="text" id="searchBox"
+                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Enter search term">
+            <button onclick="search()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                Search
+            </button>
+        </div>
+
+        <div id="loading" class="text-center text-gray-500 hidden">Searching...</div>
+
+        <div id="resultsContainer" class="overflow-x-auto">
+            <table class="min-w-full bg-white border rounded-lg hidden" id="resultsTable">
+                <thead class="bg-blue-500 text-white">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Episode</th>
+                        <th class="px-4 py-2 text-left">Start Time</th>
+                        <th class="px-4 py-2 text-left">End Time</th>
+                        <th class="px-4 py-2 text-left">Text</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody" class="divide-y"></tbody>
+            </table>
+        </div>
+        <p class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4">
+            All content copyright <a class="text-blue-600 hover:underline" href="https://linktr.ee/threebeansalad">Three
+                Bean Salad</a> podcast.
+            <br> Episode transcript was done automatically using <a class="text-blue-600 hover:underline"
+                href="https://github.com/openai/whisper">Whisper</a>, and hasn't been verified for accuracy.
+        </p>
+    </div>
+
+    <script>
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return "00:00:00";
+            let hrs = Math.floor(seconds / 3600);
+            let mins = Math.floor((seconds % 3600) / 60);
+            let secs = Math.floor(seconds % 60);
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function search() {
+            let query = document.getElementById("searchBox").value;
+            let resultTable = document.getElementById("resultsTable");
+            let resultBody = document.getElementById("resultsBody");
+            let loadingIndicator = document.getElementById("loading");
+
+            resultBody.innerHTML = "";
+            resultTable.classList.add("hidden");
+            loadingIndicator.classList.remove("hidden");
+
+            fetch(`/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    loadingIndicator.classList.add("hidden");
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        resultBody.innerHTML = `<tr><td colspan="4" class="text-center py-2 text-gray-500">No results found</td></tr>`;
+                    } else {
+                        let episodeColors = {}; // Map to store colors for each episode
+                        let colors = ["bg-red-100", "bg-blue-100", "bg-green-100", "bg-yellow-100", "bg-purple-100", "bg-pink-100", "bg-indigo-100"];
+                        let colorIndex = 0;
+
+                        resultBody.innerHTML = data.map(d => {
+                            let safeText = d.text.replace(/'/g, "\\'"); // Escape single quotes
+
+                            // Assign a color to each episode
+                            if (!(d.episode in episodeColors)) {
+                                episodeColors[d.episode] = colors[colorIndex % colors.length]; // Cycle through colors
+                                colorIndex++;
+                            }
+                            let rowColor = episodeColors[d.episode]; // Get assigned color
+
+                            return `
+                        <tr class="cursor-pointer hover:bg-gray-200 ${rowColor}" onclick="fetchContext('${d.episode}', ${d.start}, '${safeText}', this)">
+                            <td class="px-4 py-2">${d.episode || "Untitled"}</td>
+                            <td class="px-4 py-2">${formatTime(d.start)}</td>
+                            <td class="px-4 py-2">${formatTime(d.end)}</td>
+                            <td class="px-4 py-2">${d.text || "No content"}</td>
+                        </tr>
+                        <tr class="hidden bg-gray-50" id="context-${d.episode}-${d.start}">
+                            <td colspan="4" class="px-4 py-2 text-gray-600 italic">Loading context...</td>
+                        </tr>
+                    `;
+                        }).join("");
+
+                        resultTable.classList.remove("hidden");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);
+                    loadingIndicator.classList.add("hidden");
+                });
+        }
+
+
+        function fetchContext(episode, start, text, row) {
+            let contextRow = document.getElementById(`context-${episode}-${start}`);
+
+            if (!contextRow.classList.contains("hidden")) {
+                contextRow.classList.add("hidden");
+                return;
+            }
+
+            fetch(`/context?e=${encodeURIComponent(episode)}&s=${encodeURIComponent(start)}`)
+                .then(response => response.json())
+                .then(data => {
+                    let contextText = data.context || "No additional context available.";
+                    let highlightedText = highlightText(contextText, text); // Apply Tailwind-based highlighting
+
+                    contextRow.innerHTML = `<td colspan="4" class="px-4 py-2 text-gray-600 italic">
+                ${highlightedText}
+            </td>`;
+                    contextRow.classList.remove("hidden");
+                })
+                .catch(error => {
+                    console.error("Error fetching context:", error);
+                    contextRow.innerHTML = `<td colspan="4" class="px-4 py-2 text-red-600 italic">Error loading context.</td>`;
+                    contextRow.classList.remove("hidden");
+                });
+        }
+
+
+        function highlightText(context, searchText) {
+            let trimmedSearchText = searchText.trim(); // Remove leading & trailing whitespace
+            if (!trimmedSearchText) return context; // Return original if empty after trimming
+
+            // Escape special regex characters
+            let escapedSearchText = trimmedSearchText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+            // Use case-insensitive regex to wrap matches with Tailwind styling
+            let regex = new RegExp(`(${escapedSearchText})`, "gi");
+            return context.replace(regex, '<span class="bg-yellow-300 font-bold px-1 rounded">$1</span>');
+        }
+
+        // Function to trigger search when Enter is pressed
+        document.getElementById("searchBox").addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevents accidental form submission (if inside a form)
+                search(); // Calls the search function
+            }
+        });
+
+
+    </script>
+
+</body>
+
+</html>
