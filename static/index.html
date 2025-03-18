@@ -124,12 +124,12 @@
                             return `
                         <tr class="cursor-pointer hover:bg-gray-200 ${rowColor}" onclick="fetchContext('${safeEpisode}', ${d.start}, '${safeText}', this)">
                             <td class="px-4 py-2 w-1/10 ">
-                                <img id="icon-${d.episode}-${d.start}" src="/static/chevron-right_8.png" class="w-10 transition-transform duration-300" />
-                                </td>
+                                <p id="icon-${d.episode}-${d.start}" class="transition-transform duration-100 text-2xl" />▸</p>
+                            </td>
                             <td class="px-4 py-2 w-1/3">${display_title}</td>
                             <td class="px-4 py-2 w-1/7">${formatTime(d.start)}</td>
                             <!--<td class="px-4 py-2 w-1/7">${formatTime(d.end)}</td>-->
-                            <td class="px-4 py-2">${d.text || "No content"}</td>
+                            <td class="px-4 py-2 italic">...${d.text.trim() || "No content"}...</td>
                         </tr>
                         <tr class="hidden bg-gray-50" id="context-${d.episode}-${d.start}">
                             <td colspan="4" class="px-4 py-2 text-gray-600 italic">Loading context...</td>
