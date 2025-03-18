@@ -8,49 +8,64 @@ CORS(app)
 
 DB_PATH = "3bs.db"
 
+
 @app.route("/")
 def serve_frontend():
     return send_from_directory("static", "index.html")
 
+
 @app.route("/search", methods=["GET"])
 def search():
     query = request.args.get("q", "").strip()
+
+    # Sigh. This horrible mangling is need to make searching an fts5 table with apostrophes possible.
+    #   wouldn't --> "wouldn''t"  (note it needs both the double and single quotes added).
+    fts5_escaped_query = f'"{query.replace("'", "''")}"'
+
     if not query:
         return jsonify([])
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    cursor = conn.execute("SELECT episode, start, end, text FROM transcripts WHERE text MATCH ? ORDER BY episode ASC", (query,))
+    cursor = conn.execute(
+        """
+        SELECT episode, start, end, text FROM
+        transcripts WHERE text MATCH ?
+        ORDER BY episode ASC;
+        """,
+        (fts5_escaped_query,),
+    )
     results = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
     return jsonify(results)
 
+
 @app.route("/context", methods=["GET"])
 def context():
     episode = request.args.get("e", "").strip()
     start = request.args.get("s", "").strip()
-    print(episode, start)
     start = float(start)
 
     if not episode or not start:
         return jsonify([])
 
-
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    cursor = conn.execute("""
+    cursor = conn.execute(
+        """
         SELECT '...' || group_concat(text, ' ') || ' ...' AS context 
         FROM transcripts 
         WHERE episode = ? 
         AND start > (? - 30) 
         AND end < (? + 30);
-    """, (episode, start, start))
+    """,
+        (episode, start, start),
+    )
     results = cursor.fetchone()
-
     conn.close()
-
     return jsonify({"context": results[0]})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)
