@@ -102,7 +102,8 @@
                         let colorIndex = 0;
 
                         resultBody.innerHTML = data.map(d => {
-                            let safeText = d.text.replace(/'/g, "\\'"); // Escape single quotes
+                            let safeText = escape(d.text);
+                            let safeEpisode = escape(d.episode);
 
                             // Assign a color to each episode
                             if (!(d.episode in episodeColors)) {
@@ -121,7 +122,7 @@
                                 || "Untitled";
 
                             return `
-                        <tr class="cursor-pointer hover:bg-gray-200 ${rowColor}" onclick="fetchContext('${d.episode}', ${d.start}, '${safeText}', this)">
+                        <tr class="cursor-pointer hover:bg-gray-200 ${rowColor}" onclick="fetchContext('${safeEpisode}', ${d.start}, '${safeText}', this)">
                             <td class="px-4 py-2 w-1/10 ">
                                 <img id="icon-${d.episode}-${d.start}" src="/static/chevron-right_8.png" class="w-10 transition-transform duration-300" />
                                 </td>
@@ -174,13 +175,16 @@
                 });
         }
 
+        function escape(input) {
+            return input.replace(/[-\/\\^$*+?.()|[\]{}']/g, '\\$&');
+        }
 
         function highlightText(context, searchText) {
             let trimmedSearchText = searchText.trim(); // Remove leading & trailing whitespace
             if (!trimmedSearchText) return context; // Return original if empty after trimming
 
             // Escape special regex characters
-            let escapedSearchText = trimmedSearchText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            let escapedSearchText = escape(trimmedSearchText);
 
             // Use case-insensitive regex to wrap matches with Tailwind styling
             let regex = new RegExp(`(${escapedSearchText})`, "gi");
