@@ -2,8 +2,6 @@
 import os
 import whisper
 import sqlite3
-import signal
-import sys
 import fcntl
 
 model_name = "turbo"
@@ -13,11 +11,6 @@ db_file = "3bs.db"
 
 model_loaded = False
 
-def load_model():
-    print(f"Loading model {model_name} (this might take a minute...)")
-    model = whisper.load_model(model_name)
-    model_loaded = True
-    print("Model loaded.")
 
 def lock_file(file_path):
     """Lock file to prevent duplicate processing."""
@@ -29,11 +22,13 @@ def lock_file(file_path):
     except BlockingIOError:
         return None  # File is already locked
 
+
 def unlock_file(lock_file):
     """Unlock file after processing."""
     fcntl.flock(lock_file, fcntl.LOCK_UN)
     lock_file.close()
     os.remove(lock_file.name)
+
 
 def check_history(name):
     with open(history_file, "r", encoding="utf-8") as file:
@@ -57,7 +52,10 @@ for file in os.listdir(input_dir):
             continue
 
         if not model_loaded:
-            load_model()
+            print(f"Loading model {model_name} (this might take a minute...)")
+            model = whisper.load_model(model_name)
+            model_loaded = True
+            print("Model loaded.")
 
         episode = file.replace(".mp3", "")
         mp3_path = os.path.join(input_dir, file)
@@ -82,7 +80,14 @@ for file in os.listdir(input_dir):
 
             for segment in result["segments"]:
                 conn.execute(
-                    f'INSERT INTO transcripts (episode, start, end, text) VALUES ("{episode}", {segment["start"]}, {segment["end"]}, "{segment["text"]}")'
+                    f"""
+                    INSERT INTO transcripts (episode, start, end, text)
+                    VALUES (
+                        "{episode}",
+                        {segment["start"]},
+                        {segment["end"]},
+                        "{segment["text"]}"
+                    )"""
                 )
             conn.commit()
 
