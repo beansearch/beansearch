@@ -3,6 +3,7 @@ from flask import Flask, Response, request, jsonify, send_from_directory
 import sqlite3
 from flask_cors import CORS
 import json
+import subprocess
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -118,6 +119,15 @@ def test():
             return Response(msg, status=500)
 
     return "All tests passed!"
+
+
+@app.route("/info", methods=["GET"])
+def info():
+    try:
+        cmd = ["git", "log", "-1", "--format=%h %ci"]
+        return "Current commit: " + subprocess.check_output(cmd).decode("utf-8").strip()
+    except subprocess.CalledProcessError:
+        return "Unknown"
 
 
 if __name__ == "__main__":
