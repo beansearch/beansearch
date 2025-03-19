@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, Response, request, jsonify, send_from_directory
 import sqlite3
 from flask_cors import CORS
+import json
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -37,6 +38,7 @@ def serve_frontend():
 
 @app.route("/search", methods=["GET"])
 def search():
+    """Do a full-text-search for the given query string."""
     query = request.args.get("q", "").strip()
 
     if not query:
@@ -59,6 +61,7 @@ def search():
 
 @app.route("/context", methods=["GET"])
 def context():
+    """For a provided episode and timestamp, return extra context around it."""
     episode = request.args.get("e", "").strip()
     start = request.args.get("s", "").strip()
     start = float(start)
@@ -80,6 +83,41 @@ def context():
     results = cursor.fetchone()
     conn.close()
     return jsonify({"context": results[0]})
+
+
+@app.route("/test", methods=["GET"])
+def test():
+    """Run tests to ensure the backend & database is returning expected results."""
+    tests = {
+        # Fuzzy matching (distant words, and reversed order), no special characters
+        "dying genius": [
+            " A bit like, on the positive side, a child genius, but who is dying.",
+            " So there's a lot of a dying child genius.",
+        ],
+        # Fuzzy matching with an apostrophe which needs escaping.
+        "wouldn't lightly": [" we wouldn't say this lightly,"],
+        # This unquoted string should fuzzy match two results...
+        "his family business": [
+            " make it a family business yeah it'll be beans and sons with his many sons and it'll be so sad when",
+            " in his family business",
+        ],
+        # ...but when quoted it should match exactly one.
+        '"his family bsiness"': [" in his family business"],
+    }
+
+    for k, v in tests.items():
+        response = app.test_client().get(f"/search?q={k}")
+        r = [i["text"] for i in json.loads(response.data)]
+        if r != v:
+            msg = f"""<pre>Test failed!
+            Query: {k}
+            Expected: {v}
+            Received: {r}
+            </pre>
+            """
+            return Response(msg, status=500)
+
+    return "All tests passed!"
 
 
 if __name__ == "__main__":
