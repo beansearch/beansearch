@@ -21,8 +21,13 @@ def fts5_escaped_query(input):
     # Sigh. This horrible mangling is need to make searching an fts5
     # table with apostrophes possible. Note how it needs both the
     # double and single quotes added.
-    #   wouldn't --> "wouldn''t"  
-    return f'"{input.replace("'", "''")}"'
+    #   wouldn't --> "wouldn''t"
+    a = [
+        f'"{word.replace("'", "''")}"' if "'" in word else word
+        for word in input.split()
+    ]
+    # print(a)
+    return " ".join(a)
 
 
 @app.route("/")
