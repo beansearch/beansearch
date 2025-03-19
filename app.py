@@ -121,13 +121,14 @@ def test():
     return "All tests passed!"
 
 
+
+
+
 @app.route("/info", methods=["GET"])
 def info():
-    try:
-        cmd = ["git", "log", "-1", "--format=%h %ci"]
-        return "Current commit: " + subprocess.check_output(cmd).decode("utf-8").strip()
-    except subprocess.CalledProcessError:
-        return "Unknown"
+    with open('git_revision.txt', 'r') as f:
+        rev = f.readline()
+    return f"Current commit: {rev}"
 
 
 if __name__ == "__main__":
