@@ -123,7 +123,8 @@ def test():
 
 @app.route("/info", methods=["GET"])
 def info():
-    return "Current commit: " + os.environ.get("GET_INFO")
+    """An envvar containing git rev info is set at build time by flyctl"""
+    return "Current commit: " + os.environ.get("GIT_INFO", "unknown")
 
 
 if __name__ == "__main__":
