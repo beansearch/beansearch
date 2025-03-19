@@ -9,9 +9,19 @@ CORS(app)
 DB_PATH = "3bs.db"
 
 
+def get_db():
+    # I attempted to be clever and reuse the DB connection, but flask
+    # doesn't want to share it between requests. So *shrug*.
+    conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def fts5_escaped_query(input):
-    # Sigh. This horrible mangling is need to make searching an fts5 table with apostrophes possible.
-    #   wouldn't --> "wouldn''t"  (note it needs both the double and single quotes added).
+    # Sigh. This horrible mangling is need to make searching an fts5
+    # table with apostrophes possible. Note how it needs both the
+    # double and single quotes added.
+    #   wouldn't --> "wouldn''t"  
     return f'"{input.replace("'", "''")}"'
 
 
@@ -27,8 +37,7 @@ def search():
     if not query:
         return jsonify([])
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cursor = conn.execute(
         """
         SELECT episode, start, end, text FROM
@@ -52,8 +61,7 @@ def context():
     if not episode:
         return jsonify([])
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = get_db()
     cursor = conn.execute(
         """
         SELECT '...' || group_concat(text, ' ') || ' ...' AS context 
