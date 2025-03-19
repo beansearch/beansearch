@@ -3,7 +3,7 @@ from flask import Flask, Response, request, jsonify, send_from_directory
 import sqlite3
 from flask_cors import CORS
 import json
-import subprocess
+import os
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -121,14 +121,9 @@ def test():
     return "All tests passed!"
 
 
-
-
-
 @app.route("/info", methods=["GET"])
 def info():
-    with open('git_revision.txt', 'r') as f:
-        rev = f.readline()
-    return f"Current commit: {rev}"
+    return "Current commit: " + os.environ.get("GET_INFO")
 
 
 if __name__ == "__main__":
