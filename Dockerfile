@@ -9,11 +9,12 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
-COPY . .
+COPY static static
+COPY app.py app.py
+COPY 3bs.db 3bs.db
 
 # Expose the Flask port
 EXPOSE 5000
 
 # Run the Flask app
-#CMD ["python", "app.py"]
 CMD ["gunicorn", "--access-logfile", "-", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
