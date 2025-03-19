@@ -102,7 +102,7 @@ def test():
             " in his family business",
         ],
         # ...but when quoted it should match exactly one.
-        '"his family bsiness"': [" in his family business"],
+        '"his family business"': [" in his family business"],
     }
 
     for k, v in tests.items():
