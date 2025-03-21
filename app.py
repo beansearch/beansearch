@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from flask import Flask, Response, request, jsonify, send_from_directory
+from flask import Flask, Response, request, jsonify, send_from_directory, abort
+from werkzeug.test import TestResponse
 import sqlite3
 from flask_cors import CORS
 import json
@@ -43,20 +44,18 @@ def search() -> Response:
     query: str = request.args.get("q", "").strip()
 
     if not query:
-        return jsonify([])
+        abort(400, description="Query parameter is required")
 
-    conn: sqlite3.Connection = get_db()
-    cursor: sqlite3.Cursor = conn.execute(
-        """
-        SELECT episode, start, end, text FROM
-        transcripts WHERE text MATCH ?
-        ORDER BY episode ASC;
-        """,
-        (fts5_escaped_query(query),),
-    )
-    results: List[Dict[str, Any]] = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-
+    with get_db() as conn:
+        cursor: sqlite3.Cursor = conn.execute(
+            """
+            SELECT episode, start, end, text FROM
+            transcripts WHERE text MATCH ?
+            ORDER BY episode ASC;
+            """,
+            (fts5_escaped_query(query),),
+        )
+        results: List[Dict[str, Any]] = [dict(row) for row in cursor.fetchall()]
     return jsonify(results)
 
 
@@ -109,7 +108,7 @@ def test() -> Response:
     }
 
     for k, v in tests.items():
-        response: Response = app.test_client().get(f"/search?q={k}")
+        response: TestResponse = app.test_client().get(f"/search?q={k}")
         r: List[str] = [i["text"] for i in json.loads(response.data)]
         if r != v:
             msg: str = f"""<pre>Test failed!
