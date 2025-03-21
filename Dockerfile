@@ -1,20 +1,20 @@
-# Use an official Python image
-FROM python:3.12-slim
+# FROM node:20
+# WORKDIR /build
+# COPY static/index.html index.html
+# RUN npm install -D tailwindcss @tailwindcss/cli
+# RUN npx @tailwindcss/cli -o ./tailwind.css -m
 
-# Set the working directory
+FROM python:3.12-slim
 WORKDIR /app
 
-# Copy the requirements file and install dependencies
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+COPY app.py ./
+COPY 3bs.db ./
 COPY static static
-COPY app.py app.py
-COPY 3bs.db 3bs.db
+# COPY --from=0 /build/tailwind.css ./static/
 
-# Expose the Flask port
+WORKDIR /app
 EXPOSE 5000
-
-# Run the Flask app
 CMD ["gunicorn", "--access-logfile", "-", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
