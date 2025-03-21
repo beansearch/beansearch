@@ -4,27 +4,28 @@ import sqlite3
 from flask_cors import CORS
 import json
 import os
+from typing import List, Dict, Any, Optional
 
-app = Flask(__name__, static_folder="static")
+app: Flask = Flask(__name__, static_folder="static")
 CORS(app)
 
-DB_PATH = "3bs.db"
+DB_PATH: str = "3bs.db"
 
 
-def get_db():
+def get_db() -> sqlite3.Connection:
     # I attempted to be clever and reuse the DB connection, but flask
     # doesn't want to share it between requests. So *shrug*.
-    conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    conn: sqlite3.Connection = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def fts5_escaped_query(input):
+def fts5_escaped_query(input: str) -> str:
     # Sigh. This horrible mangling is need to make searching an fts5
     # table with apostrophes possible. Note how it needs both the
     # double and single quotes added.
     #   wouldn't --> "wouldn''t"
-    a = [
+    a: List[str] = [
         f'"{word.replace("'", "''")}"' if "'" in word else word
         for word in input.split()
     ]
@@ -33,20 +34,20 @@ def fts5_escaped_query(input):
 
 
 @app.route("/")
-def serve_frontend():
+def serve_frontend() -> Response:
     return send_from_directory("static", "index.html")
 
 
 @app.route("/search", methods=["GET"])
-def search():
+def search() -> Response:
     """Do a full-text-search for the given query string."""
-    query = request.args.get("q", "").strip()
+    query: str = request.args.get("q", "").strip()
 
     if not query:
         return jsonify([])
 
-    conn = get_db()
-    cursor = conn.execute(
+    conn: sqlite3.Connection = get_db()
+    cursor: sqlite3.Cursor = conn.execute(
         """
         SELECT episode, start, end, text FROM
         transcripts WHERE text MATCH ?
@@ -54,42 +55,44 @@ def search():
         """,
         (fts5_escaped_query(query),),
     )
-    results = [dict(row) for row in cursor.fetchall()]
+    results: List[Dict[str, Any]] = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
     return jsonify(results)
 
 
 @app.route("/context", methods=["GET"])
-def context():
+def context() -> Response:
     """For a provided episode and timestamp, return extra context around it."""
-    episode = request.args.get("e", "").strip()
-    start = request.args.get("s", "").strip()
-    start = float(start)
+    episode: str = request.args.get("e", "").strip()
+    start: str = request.args.get("s", "").strip()
 
     if not episode:
         return jsonify([])
 
-    conn = get_db()
-    cursor = conn.execute(
+    start_float: float = float(start)
+
+    conn: sqlite3.Connection = get_db()
+    cursor: sqlite3.Cursor = conn.execute(
         """
         SELECT '...' || group_concat(text, ' ') || ' ...' AS context 
         FROM transcripts 
         WHERE episode = ? 
         AND start > (? - 30) 
         AND end < (? + 30);
-    """,
-        (episode, start, start),
+        """,
+        (episode, start_float, start_float),
     )
-    results = cursor.fetchone()
+    results: Optional[sqlite3.Row] = cursor.fetchone()
     conn.close()
-    return jsonify({"context": results[0]})
+
+    return jsonify({"context": results[0] if results else ""})
 
 
 @app.route("/test", methods=["GET"])
-def test():
+def test() -> Response:
     """Run tests to ensure the backend & database is returning expected results."""
-    tests = {
+    tests: Dict[str, List[str]] = {
         # Fuzzy matching (distant words, and reversed order), no special characters
         "dying genius": [
             " A bit like, on the positive side, a child genius, but who is dying.",
@@ -107,10 +110,10 @@ def test():
     }
 
     for k, v in tests.items():
-        response = app.test_client().get(f"/search?q={k}")
-        r = [i["text"] for i in json.loads(response.data)]
+        response: Response = app.test_client().get(f"/search?q={k}")
+        r: List[str] = [i["text"] for i in json.loads(response.data)]
         if r != v:
-            msg = f"""<pre>Test failed!
+            msg: str = f"""<pre>Test failed!
             Query: {k}
             Expected: {v}
             Received: {r}
@@ -118,11 +121,11 @@ def test():
             """
             return Response(msg, status=500)
 
-    return "All tests passed!"
+    return Response("All tests passed!")
 
 
 @app.route("/info", methods=["GET"])
-def info():
+def info() -> str:
     """An envvar containing git rev info is set at build time by flyctl"""
     return "Current commit: " + os.environ.get("GIT_INFO", "unknown")
 
