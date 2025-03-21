@@ -25,12 +25,11 @@ def fts5_escaped_query(input: str) -> str:
     # table with apostrophes possible. Note how it needs both the
     # double and single quotes added.
     #   wouldn't --> "wouldn''t"
-    a: List[str] = [
+    escaped_words: List[str] = [
         f'"{word.replace("'", "''")}"' if "'" in word else word
         for word in input.split()
     ]
-    # print(a)
-    return " ".join(a)
+    return " ".join(escaped_words)
 
 
 @app.route("/")
