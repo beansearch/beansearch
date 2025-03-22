@@ -24,6 +24,8 @@ The site is run in a small `fly.io` container, built from the `Dockerfile`.
 ### Future Ideas
  - Add "last updated" details.
    - Shouldn't be too hard, the most recently added episode can be extract from the database or `.history` file.
+ - Perma-links
+   - So you can share links to search results.
  - Link to playable episodes.
     - The problem is link to where? The RSS feed has links to the post on Patreon, however those will only work for Patreon members. That's not a big deal as the audio transcripts are only of the ad-free Patreon versions anyhow. However Patreon doesn't let you link to a particular timestamp in the way, say, youtube does (https://youtu.be/alN1ePd2mrg?t=10510). It would be great to jump to the timestamp the search result comes from.
  - Attribute speech to people
