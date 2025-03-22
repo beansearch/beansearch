@@ -43,32 +43,58 @@
             </table>
         </div>
         <p class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4">
-            All content copyright <a class="text-blue-600 hover:underline" href="https://linktr.ee/threebeansalad">Three
-                Bean Salad</a> podcast.</p>
+            All transcribed content copyright <a href="https://linktr.ee/threebeansalad">Three Bean Salad</a> podcast.
+        </p>
 
-        <div class="text-gray-700 text-center text-xs max-w-2xl mx-auto mb-4 font-semibold">
+        <div class="text-center">
 
-            <button onclick="toggleFAQ()">
-                How Does This Work? <span id="faq-arrow">▼</span>
+            <button onclick='document.getElementById("faq-content").classList.toggle("hidden")'>
+                FAQ <span id="faq-arrow">▼</span>
             </button>
 
-            <p id="faq-content" class="text-gray-700 text-center text-xs w-xs hidden font-normal mx-auto w-1/2">
-                Episodes from the Three Bean Salad patreon feed have been transcribed locally using OpenAI's <a
-                    class="text-blue-600 hover:underline" href="https://github.com/openai/whisper">Whisper</a> library.
-                The results haven't been verified for accuracy, so don't use them
-                as the basis of litigation. However, it seems to have done a damn fine job, successfully transcribing
-                "fanjambo!".
+            <div id="faq-content" class="hidden text-left px-4 py-2">
+                <p class="font-semibold">What is this?</p>
+                <p><a href="https://linktr.ee/threebeansalad">Three Bean Salad</a> is a podcast by comedians Mike Wozniak, Henry Paker & Benjamin Partridge. AI has been used to convert episodes of the show to text, which can be searched here.</p>
+                <br>
+
+                <p class="font-semibold">Why the weird domain name?</p>
+                <p>It matches the official domain <i>enterthebeanmachine.boats</i> which, as explained in the "Assassinations" episode, is because:</p>
+                <p class="px-4 py-2 italic"">So this is because you've legally had to register the bean machine as a frigate, haven't you? In international waters. As an unarmed frigate. As an unarmed frigate. And that's for insurance purposes, isn't it? </blockquote >
+                <p>That should explain it for you.</p>
+                <br>
+
+                <p class="font-semibold">Which episodes have been transcribed?</p>
+                <p>All episodes in the 'Pinto' Patreon feed have been transcribed. New episodes should automatically be added shortly after being published.</p>
+                <br>
+
+                <p class="font-semibold">Can I trust the results?</p>
+                <p>The results haven't been verified word for word, and shouldn't be used as the basis of any litigation or major life decision. However the AI system seems to have done an excellent job, managing to transcribe such esoteric terms as <i>"fanjambo"</i>, <i>"The Streets of Beanadelfia"</i>, and <i>"beanmageddon"</i>.</p>
+                <br>
+
+                <p class="font-semibold">Why is the text broken into little chunks?</p>
+                <p>The chunks of text are called "segments". Segments are the grouping of words based on the structure of the audio, not its punctuation or meaning. It's how the transcription system breaks the text down without having to understand what is being said. Clicking on a result will bring up roughly 30s either side of the segment to hopefully put it in its context.</p>
+                <br>
+                
+                <p class="font-semibold">Any searching tips?</p>
+                <p></p> Search terms are <i>fuzzy</i>, so searching for <i>"big tree"</i> returns <i>"between the big tree and the bench"</i> from the Maps episode, as well as <i>"tree or a big bush"</i> from the Whales episode a year later. Putting quotes around terms will disable fuzzy matching. Wildcards are also supported, e.g. <i>"beana*"</i> returns <i>"beanage"</i> and <i>"Beanadelfia"</i>.</p>
+                <br>
+                
+                <p class="font-semibold">I am a nerd and would like to learn more.</p>
+                <p>The code and more technical details are available on <a href="https://github.com/beansearch/beansearch">github</a>, but tl;dr - episodes are fetched from the Patreon RSS feed; OpenAI's <a href="https://openai.com/index/whisper/">Whisper</a> library processes the files locally and produces text segments; the text is inserted into an sqlite database that's using a fts5 full-text-search enabled table. The web stack is python flask & vanilla js. The whole thing runs on the smallest fly.io instance. With 206 episodes transcribed, the database is 75MB in size.</p>
+                <br>
+
+                <p class = "font-semibold">How can I support this site?</p>
+                <p>The best thing you can do is support Three Bean Salad. Go <a href="https://threebeansaladshop.com/">buy some (more) merch</a>. If you have too much already you can send it to me instead.</p>
+                <br>
+
+                <p class = "font-semibold">Feedback? Questions?</p>
+                <p>You can email me at <a href="mailto:fanjambo@searchthebeanmachine.boats">fanjambo@searchthebeanmachine.boats</a>, or leave technical suggests on github.</p>
+            </div>
+
+
         </div>
     </div>
     <script>
-
-        function toggleFAQ() {
-            let faqContent = document.getElementById("faq-content");
-            let faqArrow = document.getElementById("faq-arrow");
-
-            faqContent.classList.toggle("hidden"); // Show/hide content
-            faqArrow.textContent = faqContent.classList.contains("hidden") ? "▼" : "▲";
-        }
 
         function formatTime(seconds) {
             if (isNaN(seconds) || seconds < 0) return "00:00:00";

@@ -1,0 +1,4 @@
+@import "tailwindcss";
+a {
+    @apply text-gray-800 underline;
+}
