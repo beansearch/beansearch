@@ -68,7 +68,7 @@
                 <br>
 
                 <p class="font-semibold">Can I trust the results?</p>
-                <p>The results haven't been verified word for word, and shouldn't be used as the basis of any litigation or major life decision. However the AI system seems to have done an excellent job, managing to transcribe such esoteric terms as <i>"fanjambo"</i>, <i>"The Streets of Beanadelfia"</i>, and <i>"beanmageddon"</i>.</p>
+                <p>The results haven't been verified word for word, and shouldn't be used as the basis of any litigation or major life decision. However the AI system seems to have done an excellent job, managing to transcribe such esoteric terms as <i>"fanjambo"</i>, <i>"The Streets of Beanadelfia"</i>, and <i>"beanmageddon"</i>. Note that some words have been transcribed with different spelling, e.g. <i>Spurbs</i> & <i>Sperbs</i></p>
                 <br>
 
                 <p class="font-semibold">Why is the text broken into little chunks?</p>
@@ -76,7 +76,13 @@
                 <br>
                 
                 <p class="font-semibold">Any searching tips?</p>
-                <p></p> Search terms are <i>fuzzy</i>, so searching for <i>"big tree"</i> returns <i>"between the big tree and the bench"</i> from the Maps episode, as well as <i>"tree or a big bush"</i> from the Whales episode a year later. Putting quotes around terms will disable fuzzy matching. Wildcards are also supported, e.g. <i>"beana*"</i> returns <i>"beanage"</i> and <i>"Beanadelfia"</i>.</p>
+                <ul class="list-disc px-6">
+                    <li>Search terms are <i>fuzzy</i>, so searching for <i>"big tree"</i> returns <i>"between the big tree and the bench"</i> from the Maps episode, as well as <i>"tree or a big bush"</i> from the Whales episode a year later.</li>
+                    <li>Putting quotes around terms will disable fuzzy matching.</li>
+                    <li>Wildcards are also supported, e.g. <i>"beana*"</i> returns <i>"beanage"</i> and <i>"Beanadelfia"</i>.</li>
+                    <li>Logic operators are also supported, e.g. <i>"Spurbs OR Sperbs".</i></li>
+                </ul>
+                </p>
                 <br>
                 
                 <p class="font-semibold">I am a nerd and would like to learn more.</p>
@@ -128,36 +134,29 @@
 
                         resultBody.innerHTML = data.map(d => {
                             let safeText = escape(d.text);
-                            let safeEpisode = escape(d.episode);
+                            // let safeEpisode = escape(d.episode_title);
 
                             // Assign a color to each episode
-                            if (!(d.episode in episodeColors)) {
-                                episodeColors[d.episode] = colors[colorIndex % colors.length]; // Cycle through colors
+                            if (!(d.episode_title in episodeColors)) {
+                                episodeColors[d.episode_title] = colors[colorIndex % colors.length]; // Cycle through colors
                                 colorIndex++;
                             }
-                            let rowColor = episodeColors[d.episode]; // Get assigned color
+                            let rowColor = episodeColors[d.episode_title]; // Get assigned color
 
-                            // Hacky way to improve the look of the Episode name column, stripping out redundant information
-                            display_title = d.episode
-                                .replace("Three Bean Salad -", "")
-                                .replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3")
-                                .replace("ad-free version", "")
-                                .replace("Ad-free version", "")
-                                .replace(/S\d E\d -/, "")
-                                || "Untitled";
 
                             return `
-                        <tr class="cursor-pointer hover:bg-gray-200 ${rowColor} border-none" onclick="fetchContext('${safeEpisode}', ${d.start}, '${safeText}', this)">
+                        <tr class="cursor-pointer hover:bg-gray-200 ${rowColor} border-none"
+                            onclick="fetchContext('${d.episode_id}', ${d.start}, '${safeText}', this)">
+
                             <td class="px-4 py-2 w-1/14 ">
-                                <p id="icon-${d.episode}-${d.start}"
+                                <p id="icon-${d.episode_id}-${d.start}"
                                     class="transition-transform duration-100 text-2xl px-0" />▸</p>
-                            </td>
-                            <td class="px-4 py-2 w-1/4">${display_title}</td>
+                            </td> 
+                            <td class="px-4 py-2 w-1/4">${d.episode_title}</td>
                             <td class="px-4 py-2 w-1/8">${formatTime(d.start)}</td>
-                            <!--<td class="px-4 py-2 w-1/6">${formatTime(d.end)}</td>-->
                             <td class="px-4 py-2 italic">...${d.text.trim() || "No content"}...</td>
                         </tr>
-                        <tr class="hidden bg-gray-50 border-none" id="context-${d.episode}-${d.start}">
+                        <tr class="hidden bg-gray-50 border-none" id="context-${d.episode_id}-${d.start}">
                             <td colspan="4" class="px-4 py-2 text-gray-600 italic">Loading context...</td>
                         </tr>
                     `;
@@ -173,9 +172,9 @@
         }
 
 
-        function fetchContext(episode, start, text, row) {
-            let contextRow = document.getElementById(`context-${episode}-${start}`);
-            let icon = document.getElementById(`icon-${episode}-${start}`);
+        function fetchContext(episode_id, start, text, row) {
+            let contextRow = document.getElementById(`context-${episode_id}-${start}`);
+            let icon = document.getElementById(`icon-${episode_id}-${start}`);
 
             if (!contextRow.classList.contains("hidden")) {
                 contextRow.classList.add("hidden");
@@ -183,7 +182,7 @@
                 return;
             }
 
-            fetch(`/context?e=${encodeURIComponent(episode)}&s=${encodeURIComponent(start)}`)
+            fetch(`/context?eid=${episode_id}&s=${start}`)
                 .then(response => response.json())
                 .then(data => {
                     let contextText = data.context || "No additional context available.";

@@ -10,13 +10,13 @@ from typing import List, Dict, Any, Optional
 app: Flask = Flask(__name__, static_folder="static")
 CORS(app)
 
-DB_PATH: str = "3bs.db"
+DB_PATH: str = "3bs_faster.db"
 
 
-def get_db() -> sqlite3.Connection:
+def get_db(mode='ro') -> sqlite3.Connection:
     # I attempted to be clever and reuse the DB connection, but flask
     # doesn't want to share it between requests. So *shrug*.
-    conn: sqlite3.Connection = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    conn: sqlite3.Connection = sqlite3.connect(f"file:{DB_PATH}?mode={mode}", uri=True)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -49,9 +49,16 @@ def search() -> Response:
     with get_db() as conn:
         cursor: sqlite3.Cursor = conn.execute(
             """
-            SELECT episode, start, end, text FROM
-            transcripts WHERE text MATCH ?
-            ORDER BY episode ASC;
+            SELECT
+            t.episode_id,
+            e.title AS episode_title,
+            e.date AS episode_date,
+            t.start,
+            t.text
+            FROM transcripts t
+            JOIN episodes e ON e.id = t.episode_id
+            WHERE t.text MATCH ?
+            ORDER BY e.date, t.start;
             """,
             (fts5_escaped_query(query),),
         )
@@ -62,27 +69,25 @@ def search() -> Response:
 @app.route("/context", methods=["GET"])
 def context() -> Response:
     """For a provided episode and timestamp, return extra context around it."""
-    episode: str = request.args.get("e", "").strip()
-    start: str = request.args.get("s", "").strip()
+    episode_id: int = int(request.args.get("eid", "").strip())
+    start: float = float(request.args.get("s", "").strip())
 
-    if not episode:
+    if not episode_id:
         return jsonify([])
 
-    start_float: float = float(start)
-
-    conn: sqlite3.Connection = get_db()
-    cursor: sqlite3.Cursor = conn.execute(
-        """
-        SELECT '...' || group_concat(text, ' ') || ' ...' AS context 
-        FROM transcripts 
-        WHERE episode = ? 
-        AND start > (? - 30) 
-        AND end < (? + 30);
-        """,
-        (episode, start_float, start_float),
-    )
-    results: Optional[sqlite3.Row] = cursor.fetchone()
-    conn.close()
+    with get_db() as conn:
+        cursor: sqlite3.Cursor = conn.execute(
+            """
+            SELECT '...' || group_concat(text, '') || ' ...' AS context 
+            FROM transcripts 
+            WHERE episode_id = ? 
+            AND start > (? - 30) 
+            AND end < (? + 30);
+            """,
+            (episode_id, start, start),
+        )
+        results: Optional[sqlite3.Row] = cursor.fetchone()
+        print(dict(results))
 
     return jsonify({"context": results[0] if results else ""})
 
