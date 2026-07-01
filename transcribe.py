@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import traceback
 import whisper
 import sqlite3
 import fcntl
@@ -74,25 +75,58 @@ for file in os.listdir(input_dir):
             result = model.transcribe(mp3_path)
 
             conn = sqlite3.connect(db_file)
-            conn.execute(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS transcripts USING fts5(episode, start, end, text)"
+            # Normalized schema: episode title stored once in `episodes`, segments
+            # in `segs`, and an external-content fts5 index (`fts`) kept in sync by
+            # triggers. See scripts/migrate_db.py for the full definition.
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS episodes(id INTEGER PRIMARY KEY, title TEXT UNIQUE);
+                CREATE TABLE IF NOT EXISTS segs(
+                    id    INTEGER PRIMARY KEY,
+                    ep    INTEGER NOT NULL REFERENCES episodes(id),
+                    start REAL,
+                    end   REAL,
+                    text  TEXT
+                );
+                CREATE INDEX IF NOT EXISTS segs_ep_start ON segs(ep, start);
+                CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(text, content='segs', content_rowid='id');
+                CREATE TRIGGER IF NOT EXISTS segs_ai AFTER INSERT ON segs BEGIN
+                    INSERT INTO fts(rowid, text) VALUES (new.id, new.text);
+                END;
+                CREATE TRIGGER IF NOT EXISTS segs_ad AFTER DELETE ON segs BEGIN
+                    INSERT INTO fts(fts, rowid, text) VALUES ('delete', old.id, old.text);
+                END;
+                CREATE TRIGGER IF NOT EXISTS segs_au AFTER UPDATE ON segs BEGIN
+                    INSERT INTO fts(fts, rowid, text) VALUES ('delete', old.id, old.text);
+                    INSERT INTO fts(rowid, text) VALUES (new.id, new.text);
+                END;
+                """
             )
+
+            conn.execute(
+                "INSERT OR IGNORE INTO episodes(title) VALUES (?)", (episode,)
+            )
+            ep_id = conn.execute(
+                "SELECT id FROM episodes WHERE title = ?", (episode,)
+            ).fetchone()[0]
 
             for segment in result["segments"]:
                 conn.execute(
-                    f"""
-                    INSERT INTO transcripts (episode, start, end, text)
-                    VALUES (
-                        "{episode}",
-                        {segment["start"]},
-                        {segment["end"]},
-                        "{segment["text"]}"
-                    )"""
+                    "INSERT INTO segs (ep, start, end, text) VALUES (?, ?, ?, ?)",
+                    (ep_id, segment["start"], segment["end"], segment["text"]),
                 )
             conn.commit()
 
             append_history(file)
             print(f"✅ {file}.")
+        except Exception as e:
+            print(f"❌ Failed processing {file}: {type(e).__name__}: {e}")
+            print(f"   episode: {episode!r}")
+            try:
+                print(f"   failing segment: {segment!r}")
+            except NameError:
+                pass
+            traceback.print_exc()
         finally:
             unlock_file(lock)
 

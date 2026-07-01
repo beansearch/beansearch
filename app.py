@@ -49,9 +49,12 @@ def search() -> Response:
     with get_db() as conn:
         cursor: sqlite3.Cursor = conn.execute(
             """
-            SELECT episode, start, end, text FROM
-            transcripts WHERE text MATCH ?
-            ORDER BY episode ASC;
+            SELECT e.title AS episode, s.start AS start, s.end AS end, s.text AS text
+            FROM fts
+            JOIN segs s ON s.id = fts.rowid
+            JOIN episodes e ON e.id = s.ep
+            WHERE fts.text MATCH ?
+            ORDER BY e.title ASC, s.id ASC;
             """,
             (fts5_escaped_query(query),),
         )
@@ -73,11 +76,12 @@ def context() -> Response:
     conn: sqlite3.Connection = get_db()
     cursor: sqlite3.Cursor = conn.execute(
         """
-        SELECT '...' || group_concat(text, ' ') || ' ...' AS context 
-        FROM transcripts 
-        WHERE episode = ? 
-        AND start > (? - 30) 
-        AND end < (? + 30);
+        SELECT '...' || group_concat(s.text, ' ') || ' ...' AS context
+        FROM segs s
+        JOIN episodes e ON e.id = s.ep
+        WHERE e.title = ?
+        AND s.start > (? - 30)
+        AND s.end < (? + 30);
         """,
         (episode, start_float, start_float),
     )
