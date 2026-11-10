@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Commit and push the files transcribe.py updates.
 
-Run from cron straight after transcribe.py, so it shells out to git rather
-than using GitPython: that lived in a user-site install tied to one python
-version, and vanished (taking this script with it) on the next upgrade.
+Run from cron straight after transcribe.py. Commits whichever of .history
+and 3bs.db have changed, then pushes main to origin.
 """
 
 import logging
@@ -41,8 +40,8 @@ def main() -> int:
     changed: List[str] = changed_files()
     unexpected: List[str] = [f for f in changed if f not in EXPECTED_CHANGES]
 
-    # Only ever commit the episode data. Anything else in the working tree
-    # means a human was in here, so leave the whole lot alone and complain.
+    # Only the episode data is ever committed. Anything else in the working
+    # tree means a human was in here, so leave the lot alone and complain.
     if unexpected:
         logging.error("Unexpected changes, not committing: %s", ", ".join(changed))
         return 1
@@ -54,8 +53,7 @@ def main() -> int:
     else:
         logging.info("No episode updates to commit.")
 
-    # Pushes used to fail silently, leaving months of commits stranded, so
-    # push any backlog even when this run had nothing new to add.
+    # Push anything local that origin hasn't got, not just this run's commit.
     pending: int = int(git("rev-list", "--count", f"origin/{BRANCH}..{BRANCH}"))
     if not pending:
         logging.info("Nothing to push.")
