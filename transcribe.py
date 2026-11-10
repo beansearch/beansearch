@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import traceback
 import whisper
 import sqlite3
@@ -45,6 +46,8 @@ def append_history(name):
 
 if not os.path.exists(history_file):
     open(history_file, "w").close()
+
+failed = []
 
 for file in os.listdir(input_dir):
     if file.endswith(".mp3"):
@@ -120,6 +123,7 @@ for file in os.listdir(input_dir):
             append_history(file)
             print(f"✅ {file}.")
         except Exception as e:
+            failed.append(file)
             print(f"❌ Failed processing {file}: {type(e).__name__}: {e}")
             print(f"   episode: {episode!r}")
             try:
@@ -131,3 +135,9 @@ for file in os.listdir(input_dir):
             unlock_file(lock)
 
 print("Transcription complete.")
+
+# Exit non-zero if any episode failed, so cron notices. Without this a
+# half-failed run looks identical to a clean one.
+if failed:
+    print(f"{len(failed)} episode(s) failed: {', '.join(failed)}")
+    sys.exit(1)
